@@ -8,9 +8,9 @@ static FILE *serial_stream = fdevopen(serial_fputchar, NULL);
 
 OneWire ibutton(pin); // ibutton connected on PIN 10.
 
-byte addr[8], addr_for_copy[8]; // array to store the Ibutton ID.
-
 byte newID[8] = {0x01, 0xBE, 0x40, 0x11, 0x5A, 0x36, 0x00, 0xE1};
+byte addr[8], addr_for_copy[8]; // array to store the Ibutton ID.
+char addr_out[24]; // addr as string
 
 void setup() {
   stdout = serial_stream;
@@ -25,7 +25,6 @@ void loop() {
 
   ibutton.write(0x33);
   ibutton.read_bytes(addr, 8);
-  char addr_out[24] = "";
   for (byte i = 0; i < 8; i++) {
     sprintf(addr_out + i*3, "%02X ", addr[i]);
   }
@@ -43,83 +42,10 @@ void loop() {
         wait();
         return;
       }
-
-      Serial.print("  ID before write: ");
-      Serial.println(addr_out);
-      // send reset
-      ibutton.reset();
-      // send 0xD1
-      ibutton.write(0xD1);
-      // send logical 0
-      digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(60);
-      pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
-
-      Serial.print("  Writing iButton ID:\n    ");
-
-      ibutton.reset();
-      ibutton.write(0xD5);
-      for (byte i = 0; i < 8; i++) {
-        writeByte(newID[i]);
-        Serial.print('*');
-      }
-      Serial.println();
-      ibutton.reset();
-      // send 0xD1
-      ibutton.write(0xD1);
-      // send logical 1
-      digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(10);
-      pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
-
-      // check if write is correct
-      ibutton.reset();
-      ibutton.write(0x33);
-      ibutton.read_bytes(addr, 8);
-      if (cmp(newID, addr, 8)) {
-        Serial.println("  Successfully writed!");
-      } else {
-        Serial.println("  ERROR");
-        wait();
-        return;
-      }
+      write_id(newID);
       break;
     case 'c':
-      Serial.print("  ID before write: ");
-      Serial.println(addr_out);
-      // send reset
-      ibutton.reset();
-      // send 0xD1
-      ibutton.write(0xD1);
-      // send logical 0
-      digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(60);
-      pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
-
-      Serial.print("  Writing iButton ID:\n    ");
-
-      ibutton.reset();
-      ibutton.write(0xD5);
-      for (byte i = 0; i < 8; i++) {
-        writeByte(addr_for_copy[i]);
-        Serial.print('*');
-      }
-      Serial.println();
-      ibutton.reset();
-      // send 0xD1
-      ibutton.write(0xD1);
-      // send logical 1
-      digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(10);
-      pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
-
-      // check if write is correct
-      ibutton.reset();
-      ibutton.write(0x33);
-      ibutton.read_bytes(addr, 8); // writed ID
-      if (cmp(addr_for_copy, addr, 8)) {
-        Serial.println("  Successfully writed!");
-      } else {
-        Serial.println("  ERROR");
-        wait();
-        return;
-      }
+      write_id(addr_for_copy);
       break;
   }
 
@@ -128,6 +54,45 @@ void loop() {
       addr_for_copy[i] = addr[i];
     }
     wait();
+  }
+}
+
+void write_id(byte *id) {
+  Serial.print("  ID before write: ");
+  Serial.println(addr_out);
+  ibutton.reset();
+  // send 0xD1
+  ibutton.write(0xD1);
+  // send logical 0
+  digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(60);
+  pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
+
+  Serial.print("  Writing iButton ID:\n    ");
+
+  ibutton.reset();
+  ibutton.write(0xD5);
+  for (byte i = 0; i < 8; i++) {
+    writeByte(id[i]);
+    Serial.print('*');
+  }
+  Serial.println();
+  ibutton.reset();
+  // send 0xD1
+  ibutton.write(0xD1);
+  // send logical 1
+  digitalWrite(pin, LOW); pinMode(pin, OUTPUT); delayMicroseconds(10);
+  pinMode(pin, INPUT); digitalWrite(pin, HIGH); delay(10);
+
+  // check if write is correct
+  ibutton.reset();
+  ibutton.write(0x33);
+  ibutton.read_bytes(addr, 8); // writed ID
+  if (cmp(id, addr, 8)) {
+    Serial.println("  Successfully writed!");
+  } else {
+    Serial.println("  ERROR");
+    wait();
+    return;
   }
 }
 
