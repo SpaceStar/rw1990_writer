@@ -14,7 +14,7 @@ char addr_out[24]; // addr as string
 
 void setup() {
   stdout = serial_stream;
-  Serial.begin(115200);
+  Serial.begin(9600);
 }
 
 void loop() {
