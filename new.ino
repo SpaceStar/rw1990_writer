@@ -8,7 +8,7 @@ static FILE *serial_stream = fdevopen(serial_fputchar, NULL);
 
 OneWire ibutton(pin); // ibutton connected on PIN 10.
 
-byte newID[8] = {0x01, 0xBE, 0x40, 0x11, 0x5A, 0x36, 0x00, 0xE1};
+byte newID[8] = {0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x2F};
 byte addr[8], addr_for_copy[8]; // array to store the Ibutton ID.
 char addr_out[24]; // addr as string
 
@@ -23,6 +23,27 @@ void loop() {
     return;
   }
 
+  if (Serial.available()) {
+    switch (Serial.read()) {
+      case 'w':
+        if (ibutton.crc8(newID, 8)) {
+          Serial.println("Incorrect crc.");
+          printf("Correct crc for writable key is %02X.\n", ibutton.crc8(newID, 7));
+          wait();
+          return;
+        }
+        write_id(newID);
+        break;
+      case 'c':
+        write_id(addr_for_copy);
+        break;
+      default:
+        return;
+    }
+    wait();
+    return;
+  }
+
   ibutton.write(0x33);
   ibutton.read_bytes(addr, 8);
   for (byte i = 0; i < 8; i++) {
@@ -32,24 +53,6 @@ void loop() {
 
   if (!ibutton.crc8(addr, 8)) {
     Serial.println(addr_out);
-  }
-
-  switch (Serial.read()) {
-    case 'w':
-      if (ibutton.crc8(newID, 8)) {
-        Serial.println("Incorrect crc.");
-        printf("Correct crc for this key is %02X.\n", ibutton.crc8(newID, 7));
-        wait();
-        return;
-      }
-      write_id(newID);
-      break;
-    case 'c':
-      write_id(addr_for_copy);
-      break;
-  }
-
-  if (!ibutton.crc8(addr, 8)) {
     for (byte i = 0; i < 8; i++) {
       addr_for_copy[i] = addr[i];
     }
@@ -91,8 +94,6 @@ void write_id(byte *id) {
     Serial.println("  Successfully writed!");
   } else {
     Serial.println("  ERROR");
-    wait();
-    return;
   }
 }
 
