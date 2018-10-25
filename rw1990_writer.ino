@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <OneWire.h>
 
-#define pin 12
+#define pin 12 // iButton connected on PIN 12
 
 static int serial_fputchar(const char ch, FILE *stream) { Serial.write(ch); return ch; }
 static FILE *serial_stream = fdevopen(serial_fputchar, NULL);
 
-OneWire ibutton(pin); // ibutton connected on PIN 10.
+OneWire ibutton(pin);
 
-byte newID[8] = {0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x2F};
-byte addr[8], addr_for_copy[8]; // array to store the Ibutton ID.
+byte newID[8] = {0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x2F}; // new ID for writing to the iButton
+byte addr[8], addr_for_copy[8]; // arrays to read and save the iButton ID
 char addr_out[24]; // addr as string
 
 void setup() {
@@ -18,14 +18,21 @@ void setup() {
 }
 
 void loop() {
-  if (!ibutton.reset()) { // read attached ibutton and asign value to buffer
+  if (!ibutton.reset()) { // check if iButton was connected
     delay(200);
     return;
   }
 
+  // read ID
+  ibutton.write(0x33);
+  ibutton.read_bytes(addr, 8);
+  for (byte i = 0; i < 8; i++) {
+    sprintf(addr_out + i*3, "%02X ", addr[i]);
+  }
+
   if (Serial.available()) {
     switch (Serial.read()) {
-      case 'w':
+      case 'w': // write new ID
         if (ibutton.crc8(newID, 8)) {
           Serial.println("Incorrect crc.");
           printf("Correct crc for writable key is %02X.\n", ibutton.crc8(newID, 7));
@@ -34,7 +41,7 @@ void loop() {
         }
         write_id(newID);
         break;
-      case 'c':
+      case 'c': // write saved ID
         write_id(addr_for_copy);
         break;
       default:
@@ -44,13 +51,7 @@ void loop() {
     return;
   }
 
-  ibutton.write(0x33);
-  ibutton.read_bytes(addr, 8);
-  for (byte i = 0; i < 8; i++) {
-    sprintf(addr_out + i*3, "%02X ", addr[i]);
-  }
-  addr_out[23] = 0;
-
+  // if crc is correct then print and save ID
   if (!ibutton.crc8(addr, 8)) {
     Serial.println(addr_out);
     for (byte i = 0; i < 8; i++) {
@@ -97,12 +98,14 @@ void write_id(byte *id) {
   }
 }
 
+// wait until iButton is disconnected
 void wait(void) {
   while (ibutton.reset()) {
     delay(200);
   }
 }
 
+// compare 2 arrays with count bytes
 bool cmp(byte *arr1, byte *arr2, int count) {
   bool equals = true;
   for (byte i = 0; i < count; i++) {
