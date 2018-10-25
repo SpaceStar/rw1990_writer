@@ -102,11 +102,11 @@ void wait(void) {
   }
 }
 
-byte cmp(byte *arr1, byte *arr2, int count) {
-  byte equals = 1;
+bool cmp(byte *arr1, byte *arr2, int count) {
+  bool equals = true;
   for (byte i = 0; i < count; i++) {
     if (arr1[i] != arr2[i]) {
-      equals = 0;
+      equals = false;
       break;
     }
   }
