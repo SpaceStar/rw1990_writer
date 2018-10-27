@@ -29,6 +29,7 @@ void loop() {
   for (byte i = 0; i < 8; i++) {
     sprintf(addr_out + i*3, "%02X ", addr[i]);
   }
+  addr_out[23] = 0;
 
   if (Serial.available()) {
     switch (Serial.read()) {
