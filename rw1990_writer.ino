@@ -63,6 +63,12 @@ void loop() {
 }
 
 void write_id(byte *id) {
+  Serial.print("Waiting: ");
+  for (byte i = 0; i < 8; i++) {
+    delay(50);
+    Serial.print('*');
+  }
+  Serial.println();
   Serial.print("  ID before write: ");
   Serial.println(addr_out);
   ibutton.reset();
